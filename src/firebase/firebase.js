@@ -1,12 +1,12 @@
 
-import firebaseConfig from "./firebaseConfig.js"
+import firebaseConfig from "./config.js"
 
 import { initializeApp } from "firebase/app";
 
 
 
 // Authentication imports
-import { GithubAuthProvider, onAuthStateChanged, signOut, getAuth } from "firebase/auth";
+import { GoogleAuthProvider, onAuthStateChanged, signOut, getAuth } from "firebase/auth";
 
 
 // Firestore imports
@@ -23,11 +23,8 @@ const app = initializeApp(firebaseConfig);
 
 
 
-
-
-
 export const auth = getAuth();
-export const provider = new GithubAuthProvider();
+export const providerGoogle = new GoogleAuthProvider();
 
 
 // Get Firebase Storage instance
@@ -36,5 +33,3 @@ export const storage = getStorage(app);
 // Get Firestore instance
 export const db = getFirestore(app);
 
-
-// export { db, storage };

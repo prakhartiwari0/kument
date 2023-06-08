@@ -1,5 +1,5 @@
 // Your web app's Firebase configuration
-const firebaseConfig = {
+export default {
   apiKey: "AIzaSyDH2kki-ujhPC93dOo5bXqzx5dR3Z3T1K4",
   authDomain: "letskument.firebaseapp.com",
   projectId: "letskument",
