@@ -32,15 +32,36 @@ import NavBar from '../../components/HomePageComps/NavBar.vue';
 import KUMENT_GOOGLE_API_KEY from '@/apikey.js'
 
 
+
+
+import { auth, providerGoogle, db, storage } from '@/firebase/firebase'
+import { signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "firebase/auth";
+import { collection, addDoc, doc, setDoc, getDoc, updateDoc, arrayUnion } from "firebase/firestore";
+
+
+
 export default {
     components: { NavBar },
     data() {
         return {
+            user:null,
             ytVideoURLInputValue: '',
         };
     },
     mounted() {
         this.$refs.ytVideoURLInput.focus()
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                this.user = user
+                console.log(this.user);
+                console.log(this.user.uid);
+                // console.log(this.user.fullName);
+            } else {
+                this.user = null
+                console.log("Signed Out");
+            }
+        });
     },
     computed: {
         isValidYouTubeVideoURL() {
@@ -82,13 +103,96 @@ export default {
             const match = url.match(pattern);
             return match && match[1];
         },
+        getVideoDetails(videoID){
+            const apiKey = KUMENT_GOOGLE_API_KEY;
+            const videoId = videoID;
 
+            
+            
+            let videoInfo = {}
+            // Get current date and time
+            const dateObject = new Date();
+            // Extract individual components
+            const year = dateObject.getFullYear();
+            const month = dateObject.getMonth() + 1; // Months are zero-based (0 - 11)
+            const day = dateObject.getDate();
+            const currentDate = `${year}-${month}-${day}`
+
+
+            const url = `https://youtube.googleapis.com/youtube/v3/videos?part=snippet%2CcontentDetails%2Cstatistics&id=${videoId}&key=${apiKey}`;
+
+            return axios
+                .get(url)
+                .then((response) => {
+                    // Check if comments are not disabled
+                    if (response) {
+                        console.log(response);
+
+                        // Main Details
+                        videoInfo.title = response.data.items[0].snippet.title
+                        videoInfo.description = response.data.items[0].snippet.description
+                        videoInfo.channelTitle = response.data.items[0].snippet.channelTitle
+                        
+
+                        // Other Info
+                        videoInfo.publishedAt = response.data.items[0].snippet.publishedAt
+                        videoInfo.addedAt = currentDate
+                        videoInfo.addedByUserID = this.user.uid
+
+                        // Video Stats
+                        videoInfo.likeCount = response.data.items[0].statistics.likeCount
+                        videoInfo.viewCount = response.data.items[0].statistics.viewCount
+
+
+
+                        console.log(videoInfo);
+                        return videoInfo
+                    }
+                })
+                .catch((error) => {
+                    console.log(error);
+                });
+        },
         openVideoBtnClicked() {
             let videoid = this.extractYouTubeVideoId(this.ytVideoURLInputValue);
-            this.checkCommentsDisabled(videoid)
-                .then((commentsDisabled) => {
-                    console.log(commentsDisabled);
-                });
+
+            
+            const videoRef = doc(db, "youtubeVideos", videoid);
+            const userRef = doc(db, "users", this.user.uid);
+
+            // Check if the video document exists
+            getDoc(videoRef)
+                .then((docSnapshot) => {
+                    if (docSnapshot.exists()) {
+                        this.$router.push(`/${videoid}`);
+                        // redirect user to the video page
+
+                    } else {
+                        this.checkCommentsDisabled(videoid)
+                            .then((commentsDisabled) => {
+                                if (commentsDisabled) {
+                                    this.getVideoDetails(videoid).then((videoInfo) =>{
+                                        setDoc(videoRef, videoInfo);
+
+                                        // Add the videoID to the addedVideosByUser in the user doc
+                                        updateDoc(userRef, {addedVideosByUser: arrayUnion(videoid)})
+                                        .then(() => { this.$router.push(`/${videoid}`); })
+                                            .catch((error) => {
+                                                console.error("Error creating user document:", error);
+                                            });
+                                    }
+                                    )
+                                }
+                                else {
+                                    alert("Comment Are Enabled on this Video");
+                                }
+
+                            });
+
+                    }
+                })
+            
+            
     }
 
 
@@ -105,8 +209,8 @@ export default {
 
 .homePageDiv{
     flex-direction: column;
-
     background-color: var(--white);
+
 
 }
 
@@ -127,5 +231,8 @@ export default {
     width: 100%;
     margin-inline: .5rem;
 }
-.openVideoButton {}
+.openVideoButton {
+
+    
+}
 </style>
