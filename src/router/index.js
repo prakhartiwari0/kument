@@ -1,4 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
+
+import VideoPageView from '../views/OtherViews/VideoPageView.vue'
+
 import MainHomePageView from '../views/HomeViews/MainHomePageView.vue'
 
 const router = createRouter({
@@ -8,6 +11,11 @@ const router = createRouter({
       path: '/',
       component: MainHomePageView
 
+    },
+    {
+      path: '/:videoID',
+      component: VideoPageView,
+      props: true,
     },
   ]
 })
