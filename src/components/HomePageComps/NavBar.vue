@@ -33,10 +33,7 @@
 <script>
 
 import { auth, providerGoogle, db, storage } from '@/firebase/firebase'
-
-
 import { signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "firebase/auth";
-
 import { collection, addDoc, doc, setDoc, getDoc } from "firebase/firestore";
 
 
@@ -52,11 +49,9 @@ export default {
     mounted(){
         onAuthStateChanged(auth, (user) => {
             if (user) {
-                console.log("Signed In");
                 this.user = user
             } else {
                 this.user = null
-                console.log("Signed Out");
             }
         });
     },
@@ -138,7 +133,6 @@ nav{
     padding-block: .5rem;
     padding-inline: 2rem;
     border-radius: 2rem;
-    /* background-color: rgba(128, 128, 128, 0.07); */
     justify-content: space-between;
     align-items: center;
 }
