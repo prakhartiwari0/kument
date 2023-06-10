@@ -63,6 +63,7 @@ export default {
 <style>
 .mainAppDiv {
   position: relative;
+    background-color: var(--white);
 }
 
 
@@ -89,5 +90,9 @@ export default {
   border-bottom-right-radius: .5rem;
   user-select: none;
   cursor: pointer;
+  opacity: .3;
 }
+  .modeSwitcherButton:hover {
+    opacity: 1;
+  }
 </style>
