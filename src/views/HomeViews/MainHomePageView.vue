@@ -11,12 +11,9 @@
                        ref="ytVideoURLInput"
                        class="ytVideoURLInput general_textInput"
                        placeholder="Paste the YouTube Video Link"
-
-                v-model="ytVideoURLInputValue"
-                       >
-                <button 
-                :disabled="!isValidYouTubeVideoURL"
-                @click="openVideoBtnClicked"
+                       v-model="ytVideoURLInputValue">
+                <button :disabled="!isValidYouTubeVideoURL"
+                        @click="openVideoBtnClicked"
                         class="general_btns openVideoButton">Open</button>
             </div>
 
@@ -44,22 +41,19 @@ export default {
     components: { NavBar },
     data() {
         return {
-            user:null,
+            user: null,
             ytVideoURLInputValue: '',
         };
     },
     mounted() {
         this.$refs.ytVideoURLInput.focus()
 
+        console.log(crypto.randomUUID());
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 this.user = user
-                console.log(this.user);
-                console.log(this.user.uid);
-                // console.log(this.user.fullName);
             } else {
                 this.user = null
-                console.log("Signed Out");
             }
         });
     },
@@ -72,12 +66,12 @@ export default {
         },
     },
     methods: {
-        checkCommentsDisabled(videoID) {
+        async checkCommentsDisabled(videoID) {
             const apiKey = KUMENT_GOOGLE_API_KEY;
             const videoId = videoID;
 
             const url = `https://youtube.googleapis.com/youtube/v3/commentThreads?part=snippet&videoId=${videoId}&key=${apiKey}`;
-            
+
             return axios
                 .get(url)
                 .then((response) => {
@@ -103,20 +97,29 @@ export default {
             const match = url.match(pattern);
             return match && match[1];
         },
-        getVideoDetails(videoID){
+        async getVideoDetails(videoID) {
             const apiKey = KUMENT_GOOGLE_API_KEY;
             const videoId = videoID;
 
-            
-            
+
+
             let videoInfo = {}
-            // Get current date and time
-            const dateObject = new Date();
+            // Get current date and timeconst dateObject = new Date();
             // Extract individual components
+            const dateObject = new Date();
             const year = dateObject.getFullYear();
             const month = dateObject.getMonth() + 1; // Months are zero-based (0 - 11)
             const day = dateObject.getDate();
-            const currentDate = `${year}-${month}-${day}`
+
+            // Get the month name
+            const monthNames = [
+                "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+            ];
+            const monthName = monthNames[month - 1];
+
+            const currentDate = `${day} ${monthName} ${year}`;
+
 
 
             const url = `https://youtube.googleapis.com/youtube/v3/videos?part=snippet%2CcontentDetails%2Cstatistics&id=${videoId}&key=${apiKey}`;
@@ -124,28 +127,25 @@ export default {
             return axios
                 .get(url)
                 .then((response) => {
-                    // Check if comments are not disabled
                     if (response) {
-                        console.log(response);
+
+                        // Commented properties are those which are not needed as of now
 
                         // Main Details
                         videoInfo.title = response.data.items[0].snippet.title
                         videoInfo.description = response.data.items[0].snippet.description
-                        videoInfo.channelTitle = response.data.items[0].snippet.channelTitle
-                        
+                        // videoInfo.channelTitle = response.data.items[0].snippet.channelTitle
+
 
                         // Other Info
-                        videoInfo.publishedAt = response.data.items[0].snippet.publishedAt
+                        // videoInfo.publishedAt = response.data.items[0].snippet.publishedAt
                         videoInfo.addedAt = currentDate
                         videoInfo.addedByUserID = this.user.uid
 
                         // Video Stats
-                        videoInfo.likeCount = response.data.items[0].statistics.likeCount
-                        videoInfo.viewCount = response.data.items[0].statistics.viewCount
+                        // videoInfo.likeCount = response.data.items[0].statistics.likeCount
+                        // videoInfo.viewCount = response.data.items[0].statistics.viewCount
 
-
-
-                        console.log(videoInfo);
                         return videoInfo
                     }
                 })
@@ -156,9 +156,8 @@ export default {
         openVideoBtnClicked() {
             let videoid = this.extractYouTubeVideoId(this.ytVideoURLInputValue);
 
-            
+
             const videoRef = doc(db, "youtubeVideos", videoid);
-            const userRef = doc(db, "users", this.user.uid);
 
             // Check if the video document exists
             getDoc(videoRef)
@@ -168,35 +167,49 @@ export default {
                         // redirect user to the video page
 
                     } else {
-                        this.checkCommentsDisabled(videoid)
-                            .then((commentsDisabled) => {
-                                if (commentsDisabled) {
-                                    this.getVideoDetails(videoid).then((videoInfo) =>{
-                                        setDoc(videoRef, videoInfo);
-
-                                        // Add the videoID to the addedVideosByUser in the user doc
-                                        updateDoc(userRef, {addedVideosByUser: arrayUnion(videoid)})
-                                        .then(() => { this.$router.push(`/${videoid}`); })
-                                            .catch((error) => {
-                                                console.error("Error creating user document:", error);
+                        if (this.user) {
+                            this.checkCommentsDisabled(videoid)
+                                .then((commentsDisabled) => {
+                                    if (commentsDisabled) {
+                                        this.getVideoDetails(videoid).then((videoInfo) => {
+                                            setDoc(videoRef, {
+                                                videoInfo, commentsData: {
+                                                    commentsDetails: {
+                                                        totalCommentsCount: 0,
+                                                    },
+                                                }
                                             });
+
+                                            const userRef = doc(db, "users", this.user.uid);
+                                            // Add the videoID to the addedVideosByUser in the user doc
+                                            updateDoc(userRef, { addedVideosByUser: arrayUnion(videoid) })
+                                                .then(() => { this.$router.push(`/${videoid}`) })
+                                                .catch((error) => {
+                                                    console.error("Error creating user document:", error);
+                                                });
+                                        }
+                                        )
                                     }
-                                    )
-                                }
-                                else {
-                                    alert("Comment Are Enabled on this Video");
-                                }
+                                    else {
+                                        alert("Comment Are Enabled on this Video");
+                                    }
 
-                            });
+                                });
 
+
+                        }
+                        else {
+                            alert("Login to Add Video")
+
+                        }
                     }
                 })
-            
-            
-    }
 
 
-},
+        }
+
+
+    },
 };
 </script>
 
@@ -206,8 +219,7 @@ export default {
 
 
 <style>
-
-.homePageDiv{
+.homePageDiv {
     flex-direction: column;
     background-color: var(--white);
 
@@ -231,8 +243,6 @@ export default {
     width: 100%;
     margin-inline: .5rem;
 }
-.openVideoButton {
 
-    
-}
+.openVideoButton {}
 </style>

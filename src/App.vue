@@ -3,7 +3,7 @@
 
     <button class="material-symbols-rounded modeSwitcherButton"
             ref="modeSwitcherButton"
-            @click="switchMode">
+            @click="switchMode" title="Switch Theme (Ctrl + Shift + K)">
       {{ currentMode == 'light_mode' ? 'dark_mode' : 'light_mode' }}
     </button>
 
@@ -17,16 +17,21 @@
 <script>
 import { RouterLink, RouterView } from 'vue-router'
 
+
 export default {
   data() {
     return {
       currentMode: '',
     }
   },
+  
 
   mounted() {
-    window.addEventListener('beforeunload', this.saveMode);
 
+      window.addEventListener('keydown', this.handleKeyDown);
+      
+    window.addEventListener('beforeunload', this.saveMode);
+    
     const storedMode = localStorage.getItem('currentMode'); // Retrieve the mode from localStorage
     if (storedMode) {
       this.currentMode = storedMode;
@@ -34,14 +39,23 @@ export default {
       // Set a default mode if no mode is stored
       this.currentMode = 'light_mode';
     }
-
+    
   },
-
+  
   beforeUnmount() {
+    window.removeEventListener('keydown', this.handleKeyDown);
     window.removeEventListener('beforeunload', this.saveMode);
   },
-
+  
   methods: {
+    handleKeyDown(event) {
+      if (event.ctrlKey && event.shiftKey && event.key === 'K') {
+        this.myFunction();
+      }
+    },
+    myFunction() {
+    this.switchMode()
+  },
     switchMode() {
       if (this.currentMode == 'light_mode') {
         this.currentMode = 'dark_mode'}

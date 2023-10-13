@@ -6,7 +6,7 @@
         
             <VideoSection :videoInfo="videoInfo" :youtubeVideoID="youtubeVideoID"/>
 
-            <CommentSection/>
+            <CommentSection :commentsData="commentsData"/>
         </template>
 
     </div>
@@ -36,6 +36,7 @@ export default{
                 description:"",
                 addedAt:""
             },
+            commentsData:{},
             youtubeVideoID: this.$route.params.videoID,
             youtubeVideoExists:false,
         }
@@ -65,22 +66,23 @@ export default{
             getDoc(videoRef)
                 .then((docSnapshot) => {
                     if (docSnapshot.exists()) {
-                        this.videoInfo = docSnapshot.data()
+                        this.videoInfo = docSnapshot.data().videoInfo
+                        this.commentsData = docSnapshot.data().commentsData
                         document.title = this.videoInfo.title + " - Kument"
 
-                        const userRef = doc(db, "users", this.videoInfo.addedByUserID);
+                        const userRef = doc(db, "users", this.videoInfo.addedByUserID, "userDetails", "userBasicInfo");
                         getDoc(userRef).then(
                             (userSnap) => {
                                 if (userSnap.exists()) {
                                     const userData = userSnap.data()
-                                    addedByUserName = `${userData.firstName} ${userData.lastName}`
-                                    this.videoInfo.addedByUserName = addedByUserName
-                                    this.youtubeVideoExists = true
-
+                                    addedByUserName = userData.displayName
+                                    
                                 } else {
                                     addedByUserName = "Deleted User"
                                     console.log("User does not exist");
                                 }
+                                this.videoInfo.addedByUserName = addedByUserName
+                                this.youtubeVideoExists = true
                             }
                         )
                         console.log("Yes the video exists");
